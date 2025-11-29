@@ -1,7 +1,6 @@
 static_dir = "./static/"
 log_dir = "$HOME/tmp/tts-logs"
 instance_name = "stt"
-addr = "0.0.0.0:9000"
 authorized_ids = ["public_token"]
 
 [modules.asr]

@@ -84,7 +84,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$(pwd)
-ExecStart=$(which moshi-server) worker --config $CONFIG_FILE
+ExecStart=$(which moshi-server) worker --config $CONFIG_FILE --port $MOSHI_PORT
 Restart=always
 RestartSec=10
 
@@ -129,7 +129,7 @@ start_services() {
 
     # Start moshi-server in background
     echo -e "${GREEN}Starting Moshi WebSocket Server on port $MOSHI_PORT...${NC}"
-    moshi-server worker --config $CONFIG_FILE > logs/moshi-server.log 2>&1 &
+    moshi-server worker --config $CONFIG_FILE --port $MOSHI_PORT > logs/moshi-server.log 2>&1 &
     MOSHI_PID=$!
     echo "Moshi Server PID: $MOSHI_PID"
     echo $MOSHI_PID > logs/moshi.pid
