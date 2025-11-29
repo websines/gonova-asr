@@ -78,8 +78,12 @@ class STTClient {
                 this.disconnect();
             };
 
-            this.ws.onclose = () => {
-                console.log('WebSocket closed');
+            this.ws.onclose = (event) => {
+                console.log('WebSocket closed:', {
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean
+                });
                 this.disconnect();
             };
 
@@ -171,6 +175,7 @@ class STTClient {
             const bufferSize = 4096;
             this.audioWorkletNode = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
 
+            let audioChunkCount = 0;
             this.audioWorkletNode.onaudioprocess = (event) => {
                 if (this.isRecording && this.ws && this.ws.readyState === WebSocket.OPEN) {
                     const inputData = event.inputBuffer.getChannelData(0);
@@ -181,7 +186,16 @@ class STTClient {
                     // Send as msgpack-encoded message (format expected by moshi-server)
                     const message = { type: "Audio", pcm: pcmArray };
                     const encoded = MessagePack.encode(message);
-                    this.ws.send(encoded);
+
+                    try {
+                        this.ws.send(encoded);
+                        audioChunkCount++;
+                        if (audioChunkCount <= 3) {
+                            console.log(`Sent audio chunk #${audioChunkCount}, size: ${encoded.byteLength} bytes, samples: ${pcmArray.length}`);
+                        }
+                    } catch (e) {
+                        console.error('Error sending audio:', e);
+                    }
                 }
             };
 
