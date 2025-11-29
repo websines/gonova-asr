@@ -108,25 +108,33 @@ class STTClient {
         this.stopBtn.disabled = true;
     }
 
-    handleMessage(data) {
+    async handleMessage(data) {
         try {
-            // Handle text messages (transcriptions)
-            if (typeof data === 'string') {
-                const message = JSON.parse(data);
+            // Server sends msgpack-encoded binary messages
+            if (data instanceof Blob) {
+                const arrayBuffer = await data.arrayBuffer();
+                const message = MessagePack.decode(new Uint8Array(arrayBuffer));
                 console.log('Received message:', message);
 
+                if (message.type === 'Word' && message.text) {
+                    this.appendTranscript(message.text);
+                } else if (message.type === 'EndWord') {
+                    // Word boundary - could add punctuation or spacing logic here
+                } else if (message.type === 'Step') {
+                    // VAD predictions - could visualize pause detection
+                } else if (message.type === 'Marker') {
+                    console.log('Stream marker received:', message.id);
+                }
+            } else if (typeof data === 'string') {
+                // Fallback for text messages
+                const message = JSON.parse(data);
+                console.log('Received text message:', message);
                 if (message.text) {
                     this.appendTranscript(message.text);
-                } else if (message.transcript) {
-                    this.appendTranscript(message.transcript);
                 }
             }
         } catch (error) {
             console.error('Error handling message:', error);
-            // If it's not JSON, treat it as plain text
-            if (typeof data === 'string') {
-                this.appendTranscript(data);
-            }
         }
     }
 
@@ -167,11 +175,13 @@ class STTClient {
                 if (this.isRecording && this.ws && this.ws.readyState === WebSocket.OPEN) {
                     const inputData = event.inputBuffer.getChannelData(0);
 
-                    // Convert Float32 to Int16 PCM
-                    const pcmData = this.float32ToInt16(inputData);
+                    // Convert Float32Array to regular array of floats
+                    const pcmArray = Array.from(inputData);
 
-                    // Send as binary data
-                    this.ws.send(pcmData.buffer);
+                    // Send as msgpack-encoded message (format expected by moshi-server)
+                    const message = { type: "Audio", pcm: pcmArray };
+                    const encoded = MessagePack.encode(message);
+                    this.ws.send(encoded);
                 }
             };
 
@@ -219,15 +229,6 @@ class STTClient {
         console.log('Recording stopped');
     }
 
-    float32ToInt16(float32Array) {
-        const int16Array = new Int16Array(float32Array.length);
-        for (let i = 0; i < float32Array.length; i++) {
-            // Clamp values to [-1, 1] and convert to 16-bit PCM
-            const s = Math.max(-1, Math.min(1, float32Array[i]));
-            int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-        return int16Array;
-    }
 }
 
 // Initialize the client when the page loads
