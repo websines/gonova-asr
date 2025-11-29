@@ -5,18 +5,19 @@ use axum::{
     routing::get,
     Router,
 };
-use futures_util::{SinkExt, StreamExt};
+use futures_util::SinkExt;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::timeout;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{connect_async_with_config, tungstenite::client::IntoClientRequest};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 
 #[derive(Clone)]
 struct AppState {
     websocket_url: String,
+    api_key: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -29,8 +30,17 @@ struct HealthResponse {
     error: Option<String>,
 }
 
-async fn check_websocket(ws_url: &str) -> Result<bool, String> {
-    match timeout(Duration::from_secs(5), connect_async(ws_url)).await {
+async fn check_websocket(ws_url: &str, api_key: &str) -> Result<bool, String> {
+    // Create request with authentication header
+    let mut request = ws_url.into_client_request()
+        .map_err(|e| format!("Invalid WebSocket URL: {}", e))?;
+
+    request.headers_mut().insert(
+        "kyutai-api-key",
+        api_key.parse().map_err(|e| format!("Invalid API key: {}", e))?,
+    );
+
+    match timeout(Duration::from_secs(5), connect_async_with_config(request, None, false)).await {
         Ok(Ok((mut ws_stream, _))) => {
             // Try to close gracefully
             let _ = ws_stream.close(None).await;
@@ -42,7 +52,7 @@ async fn check_websocket(ws_url: &str) -> Result<bool, String> {
 }
 
 async fn health_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let ws_check = check_websocket(&state.websocket_url).await;
+    let ws_check = check_websocket(&state.websocket_url, &state.api_key).await;
 
     let (ws_available, error) = match ws_check {
         Ok(available) => (available, None),
@@ -95,7 +105,10 @@ async fn main() {
         .init();
 
     let websocket_url = std::env::var("WEBSOCKET_URL")
-        .unwrap_or_else(|_| "ws://localhost:9000/api/asr-streaming?token=public_token".to_string());
+        .unwrap_or_else(|_| "ws://localhost:9000/api/asr-streaming".to_string());
+
+    let api_key = std::env::var("API_KEY")
+        .unwrap_or_else(|_| "public_token".to_string());
 
     let health_port = std::env::var("HEALTH_PORT")
         .unwrap_or_else(|_| "8001".to_string())
@@ -108,6 +121,7 @@ async fn main() {
 
     let state = Arc::new(AppState {
         websocket_url: websocket_url.clone(),
+        api_key: api_key.clone(),
     });
 
     // Configure CORS to allow requests from any origin
