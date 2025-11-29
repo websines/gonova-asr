@@ -140,7 +140,7 @@ start_services() {
 
     # Start health check service in background
     echo -e "${GREEN}Starting Health Check Service on port $HEALTH_PORT...${NC}"
-    WEBSOCKET_URL="ws://localhost:$MOSHI_PORT" HEALTH_PORT=$HEALTH_PORT \
+    WEBSOCKET_URL="ws://localhost:$MOSHI_PORT/api/asr-streaming" HEALTH_PORT=$HEALTH_PORT \
         ./services/health-check/target/release/stt-health-check > logs/health-check.log 2>&1 &
     HEALTH_PID=$!
     echo "Health Check PID: $HEALTH_PID"
