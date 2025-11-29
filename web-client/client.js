@@ -175,6 +175,9 @@ class STTClient {
             const bufferSize = 4096;
             this.audioWorkletNode = this.audioContext.createScriptProcessor(bufferSize, 1, 1);
 
+            // Create msgpack encoder with float32 forced (required by moshi-server)
+            const msgpackEncoder = new MessagePack.Encoder({ forceFloat32: true });
+
             let audioChunkCount = 0;
             this.audioWorkletNode.onaudioprocess = (event) => {
                 if (this.isRecording && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -185,7 +188,7 @@ class STTClient {
 
                     // Send as msgpack-encoded message (format expected by moshi-server)
                     const message = { type: "Audio", pcm: pcmArray };
-                    const encoded = MessagePack.encode(message);
+                    const encoded = msgpackEncoder.encode(message);
 
                     try {
                         this.ws.send(encoded);
