@@ -128,8 +128,9 @@ start_services() {
     echo ""
 
     # Start moshi-server in background
-    echo -e "${GREEN}Starting Moshi WebSocket Server on port $MOSHI_PORT...${NC}"
-    moshi-server worker --config $CONFIG_FILE --port $MOSHI_PORT > logs/moshi-server.log 2>&1 &
+    # CUDA_VISIBLE_DEVICES selects which GPU to use (0=first, 1=second, etc.)
+    echo -e "${GREEN}Starting Moshi WebSocket Server on port $MOSHI_PORT (GPU: ${CUDA_VISIBLE_DEVICES:-0})...${NC}"
+    CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-1} moshi-server worker --config $CONFIG_FILE --port $MOSHI_PORT > logs/moshi-server.log 2>&1 &
     MOSHI_PID=$!
     echo "Moshi Server PID: $MOSHI_PID"
     echo $MOSHI_PID > logs/moshi.pid
