@@ -30,7 +30,7 @@ fi
 echo ""
 
 # 1. Check/Install Rust
-echo -e "${YELLOW}[1/3] Checking Rust installation...${NC}"
+echo -e "${YELLOW}[1/4] Checking Rust installation...${NC}"
 if command -v cargo &> /dev/null; then
     echo -e "${GREEN}✓ Rust already installed: $(rustc --version)${NC}"
 else
@@ -43,7 +43,7 @@ fi
 echo ""
 
 # 2. Check CUDA
-echo -e "${YELLOW}[2/3] Checking CUDA installation...${NC}"
+echo -e "${YELLOW}[2/4] Checking CUDA installation...${NC}"
 if command -v nvcc &> /dev/null; then
     CUDA_VERSION=$(nvcc --version | grep "release" | awk '{print $5}' | cut -d',' -f1)
     echo -e "${GREEN}✓ CUDA installed: $CUDA_VERSION${NC}"
@@ -71,8 +71,48 @@ fi
 
 echo ""
 
-# 3. Check Python
-echo -e "${YELLOW}[3/3] Checking Python installation...${NC}"
+# 3. Check/Install OpenSSL development libraries
+echo -e "${YELLOW}[3/4] Checking OpenSSL development libraries...${NC}"
+if [ "$OS" == "linux" ]; then
+    if command -v apt-get &> /dev/null; then
+        # Ubuntu/Debian
+        if dpkg -l | grep -q libssl-dev; then
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        else
+            echo -e "${YELLOW}Installing OpenSSL dev libraries...${NC}"
+            sudo apt-get update
+            sudo apt-get install -y libssl-dev pkg-config
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        fi
+    elif command -v yum &> /dev/null; then
+        # CentOS/RHEL
+        if rpm -qa | grep -q openssl-devel; then
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        else
+            echo -e "${YELLOW}Installing OpenSSL dev libraries...${NC}"
+            sudo yum install -y openssl-devel pkg-config
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        fi
+    elif command -v dnf &> /dev/null; then
+        # Fedora
+        if rpm -qa | grep -q openssl-devel; then
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        else
+            echo -e "${YELLOW}Installing OpenSSL dev libraries...${NC}"
+            sudo dnf install -y openssl-devel pkg-config
+            echo -e "${GREEN}✓ OpenSSL dev libraries installed${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠ Unknown package manager. Please install openssl-dev manually.${NC}"
+    fi
+else
+    echo -e "${GREEN}✓ macOS - OpenSSL available via system${NC}"
+fi
+
+echo ""
+
+# 4. Check Python
+echo -e "${YELLOW}[4/4] Checking Python installation...${NC}"
 if command -v python3 &> /dev/null; then
     PYTHON_VERSION=$(python3 --version)
     echo -e "${GREEN}✓ Python installed: $PYTHON_VERSION${NC}"
@@ -81,15 +121,40 @@ else
     if [ "$OS" == "linux" ]; then
         if command -v apt-get &> /dev/null; then
             sudo apt-get update
-            sudo apt-get install -y python3 python3-pip
+            sudo apt-get install -y python3 python3-pip python3-dev
         elif command -v yum &> /dev/null; then
-            sudo yum install -y python3 python3-pip
+            sudo yum install -y python3 python3-pip python3-devel
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y python3 python3-pip python3-devel
         else
             echo -e "${RED}Cannot auto-install Python. Please install manually.${NC}"
             exit 1
         fi
     fi
     echo -e "${GREEN}✓ Python installed${NC}"
+else
+    # Python is installed, check for dev headers
+    if [ "$OS" == "linux" ]; then
+        echo -e "${YELLOW}Checking Python development headers...${NC}"
+        if command -v apt-get &> /dev/null; then
+            if dpkg -l | grep -q python3-dev; then
+                echo -e "${GREEN}✓ Python dev headers installed${NC}"
+            else
+                echo -e "${YELLOW}Installing Python dev headers...${NC}"
+                sudo apt-get install -y python3-dev
+                echo -e "${GREEN}✓ Python dev headers installed${NC}"
+            fi
+        elif command -v yum &> /dev/null || command -v dnf &> /dev/null; then
+            PKG_MGR=$(command -v dnf &> /dev/null && echo "dnf" || echo "yum")
+            if rpm -qa | grep -q python3-devel; then
+                echo -e "${GREEN}✓ Python dev headers installed${NC}"
+            else
+                echo -e "${YELLOW}Installing Python dev headers...${NC}"
+                sudo $PKG_MGR install -y python3-devel
+                echo -e "${GREEN}✓ Python dev headers installed${NC}"
+            fi
+        fi
+    fi
 fi
 
 echo ""

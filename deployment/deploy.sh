@@ -16,10 +16,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-MOSHI_PORT=${MOSHI_PORT:-9000}
-HEALTH_PORT=${HEALTH_PORT:-8002}  # Matches nginx configuration
-WEB_PORT=${WEB_PORT:-9002}
+# Configuration - Hardcoded ports
+MOSHI_PORT=9000
+HEALTH_PORT=8001
+WEB_PORT=9002
 STT_MODEL=${STT_MODEL:-"kyutai/stt-1b-en_fr"}
 CONFIG_FILE=${CONFIG_FILE:-"configs/config-stt-en_fr-hf.toml"}
 
