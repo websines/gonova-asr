@@ -116,23 +116,7 @@ echo -e "${YELLOW}[4/4] Checking Python installation...${NC}"
 if command -v python3 &> /dev/null; then
     PYTHON_VERSION=$(python3 --version)
     echo -e "${GREEN}✓ Python installed: $PYTHON_VERSION${NC}"
-else
-    echo -e "${YELLOW}Python not found. Installing...${NC}"
-    if [ "$OS" == "linux" ]; then
-        if command -v apt-get &> /dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y python3 python3-pip python3-dev
-        elif command -v yum &> /dev/null; then
-            sudo yum install -y python3 python3-pip python3-devel
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y python3 python3-pip python3-devel
-        else
-            echo -e "${RED}Cannot auto-install Python. Please install manually.${NC}"
-            exit 1
-        fi
-    fi
-    echo -e "${GREEN}✓ Python installed${NC}"
-else
+
     # Python is installed, check for dev headers
     if [ "$OS" == "linux" ]; then
         echo -e "${YELLOW}Checking Python development headers...${NC}"
@@ -155,6 +139,22 @@ else
             fi
         fi
     fi
+else
+    echo -e "${YELLOW}Python not found. Installing...${NC}"
+    if [ "$OS" == "linux" ]; then
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip python3-dev
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y python3 python3-pip python3-devel
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y python3 python3-pip python3-devel
+        else
+            echo -e "${RED}Cannot auto-install Python. Please install manually.${NC}"
+            exit 1
+        fi
+    fi
+    echo -e "${GREEN}✓ Python installed${NC}"
 fi
 
 echo ""
