@@ -95,7 +95,7 @@ async fn main() {
         .init();
 
     let websocket_url = std::env::var("WEBSOCKET_URL")
-        .unwrap_or_else(|_| "ws://localhost:9000/api/asr-streaming".to_string());
+        .unwrap_or_else(|_| "ws://localhost:9000/api/asr-streaming?token=public_token".to_string());
 
     let health_port = std::env::var("HEALTH_PORT")
         .unwrap_or_else(|_| "8001".to_string())
